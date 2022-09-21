@@ -1,6 +1,7 @@
-#!/usr/bin/env python3, 4-space indented, v1.0
-# File name: fasta.parser.py
-# Description: 
+#!/usr/bin/env python 
+# 4-space indented, v1.0
+# File name: fasta_parser.py
+# Description: This script can be used to calculate various metrics from an input fasta file.
 # Author: Robert Linder
 # Date: 2022-07-31
 
