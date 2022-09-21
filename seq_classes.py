@@ -9,32 +9,32 @@ import re
 
 
 class NucleicAcid:
+	"""define a nucliec acid, including unnatural sequences that contain Ts and Us"""
 
-	_dna= re.compile('[ATCGN]+')
-	_rna= re.compile('[AUCGN]+')
-	_dna_pairings = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C', 'N': 'N'}
-	_rna_pairings = {'A': 'U', 'C': 'G', 'U': 'A', 'G': 'C', 'N': 'N'}
-	_dna_to_rna = {'A': 'A', 'C': 'C', 'T': 'U', 'G': 'G', 'N': 'N'}
-	_rna_to_dna = {'A': 'A', 'C': 'C', 'U': 'T', 'G': 'G', 'N': 'N'}
+	_nuc = re.compile('[ATCGUN]+')
 
 	def __init__(self, sequence):
 		self.sequence = sequence.upper().replace(" ", "").replace("-", "")
-		if not NucleicAcid._dna.fullmatch(self.sequence) and not NucleicAcid._rna.fullmatch(self.sequence):
+		if not NucleicAcid._nuc.fullmatch(self.sequence):
 			raise ValueError("Please use a valid nucleic acid sequence")
 
 	def __repr__(self):
 		return f"{self.sequence} is a nucleic acid sequence of length {len(self.sequence)}bp"
-
 
 	def reverse(self):
 		"""reverses a nucleic acid sequence, agnostic of type"""
 		return self.sequence[::-1]
 
 class DNA(NucleicAcid):
+	"""define DNA, how the bases are paired, and how DNA can be converted into RNA"""
+	
+	_dna = re.compile('[ATCGN]+')
+	_dna_pairings = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C', 'N': 'N'}
+	_dna_to_rna = {'A': 'A', 'C': 'C', 'T': 'U', 'G': 'G', 'N': 'N'}
 
 	def __init__(self, sequence):
 		super().__init__(sequence)
-		if not NucleicAcid._dna.fullmatch(self.sequence):
+		if not DNA._dna.fullmatch(self.sequence):
 			raise ValueError("Please use a valid DNA sequence")
 	
 	def __repr__(self):
@@ -52,15 +52,20 @@ class DNA(NucleicAcid):
 
 	def transcribe(self):
 		"""transcribe a sequence of DNA"""
-		ts = [NucleicAcid._dna_to_rna.get(key) for key in self.sequence]
+		ts = [DNA._dna_to_rna.get(key) for key in self.sequence]
 		return ''.join(ts)
 
 
 class RNA(NucleicAcid):
+	"""define RNA, how the bases are paired, and how RNA can be converted back into DNA"""
+	
+	_rna = re.compile('[AUCGN]+')
+	_rna_pairings = {'A': 'U', 'C': 'G', 'U': 'A', 'G': 'C', 'N': 'N'}
+	_rna_to_dna = {'A': 'A', 'C': 'C', 'U': 'T', 'G': 'G', 'N': 'N'}
 
 	def __init__(self, sequence):
 		super().__init__(sequence)
-		if not NucleicAcid._rna.fullmatch(self.sequence):
+		if not RNA._rna.fullmatch(self.sequence):
 			raise ValueError("Please use a valid RNA sequence")
 	
 	def __repr__(self):
@@ -78,21 +83,19 @@ class RNA(NucleicAcid):
 
 	def reverse_transcribe(self):
 		"""reverse transcribe a sequence of RNA"""
-		rts = [NucleicAcid._rna_to_dna.get(key) for key in self.sequence]
+		rts = [RNA._rna_to_dna.get(key) for key in self.sequence]
 		return ''.join(rts)
 
 
-	#def transcribe(self)
+# class Orf(DNA):
+# 	orfs_found = 0
 
-
-#class RNA(NucleicAcid):
-
-	#def reverse_transcribe(self)
-
-
-#class Orf(DNA):
-
-#class 
+# 	@classmethod
+# 	def 
+# start = 'ATG'
+# 	stop = ['TAA', 'TAG', 'TGA']
+# 	frame_start = 3
+#class Orf(DNA): 
 
 #class Fasta(DNA):
 
@@ -104,5 +107,5 @@ class RNA(NucleicAcid):
 #class 
 
 
-nuc = RNA(sequence = "acgauu")
-print(nuc.reverse_transcribe())
+# nuc = DNA(sequence = "acgatt")
+# print(nuc.reverse_complement())
