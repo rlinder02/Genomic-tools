@@ -9,33 +9,36 @@ import re
 
 
 class NucleicAcid:
-	"""define a nucliec acid, including unnatural sequences that contain Ts and Us; can be passed in as a single string or a list of strings"""
+	"""define a nucliec acid, including unnatural sequences that contain Ts and Us; can be passed in as a single string or a list of strings; the output will be a list"""
 
 	_nuc = re.compile('[ATCGUN]+')
+	seq_counter = 0
 
 	def __init__(self, sequence):
 		if not isinstance(sequence, list) and not isinstance(sequence, str):
 			raise TypeError("Please enter a list of sequence strings or a single sequence string")
-		self.sequence = [seq.upper().replace(" ", "").replace("-", "") for seq in sequence]
-		seq_counter = 0
+		if isinstance(sequence, list):
+			self.sequence = [seq.upper().replace(" ", "").replace("-", "") for seq in sequence]
+		else:
+			self.sequence = [sequence.upper().replace(" ", "").replace("-", "")]
 		for seq in self.sequence:
-			seq_counter += 1
-			if not NucleicAcid._nuc.fullmatch(self.seq):
-				if isinstance(self.sequence, list):
-					raise ValueError(f"Sequence {seq_counter} is not a valid nucleic acid sequence")
+			NucleicAcid.seq_counter += 1
+			if not NucleicAcid._nuc.fullmatch(seq):
+				if len(self.sequence) > 1:
+					raise ValueError(f"Sequence {NucleicAcid.seq_counter} is not a valid nucleic acid sequence")
 				else:
 					raise ValueError("Please use a valid nucleic acid sequence")
 
-		self.sequence = sequence.upper().replace(" ", "").replace("-", "")
-		if not NucleicAcid._nuc.fullmatch(self.sequence):
-			raise ValueError("Please use a valid nucleic acid sequence")
-
 	def __repr__(self):
-		return f"{self.sequence} is a nucleic acid sequence of length {len(self.sequence)}bp"
+		if len(self.sequence) > 1:
+			return f"This is a list of {NucleicAcid.seq_counter} nucleic acid sequences"
+		else:
+			return f"This is a nucleic acid sequence of length {len(self.sequence[0])}bp"
 
 	def reverse(self):
 		"""reverses a nucleic acid sequence, agnostic of type"""
-		return self.sequence[::-1]
+		return [seq[::-1] for seq in self.sequence]
+	
 
 class DNA(NucleicAcid):
 	"""define DNA, how the bases are paired, and how DNA can be converted into RNA"""
@@ -43,29 +46,50 @@ class DNA(NucleicAcid):
 	_dna = re.compile('[ATCGN]+')
 	_dna_pairings = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C', 'N': 'N'}
 	_dna_to_rna = {'A': 'A', 'C': 'C', 'T': 'U', 'G': 'G', 'N': 'N'}
+	dna_counter = 0
 
 	def __init__(self, sequence):
 		super().__init__(sequence)
-		if not DNA._dna.fullmatch(self.sequence):
-			raise ValueError("Please use a valid DNA sequence")
+		for seq in self.sequence:
+			DNA.dna_counter += 1
+			if not DNA._dna.fullmatch(seq):
+				if len(self.sequence) > 1:
+					raise ValueError(f"Sequence {DNA.dna_counter} is not a valid DNA sequence")
+				else:
+					raise ValueError("Please use a valid DNA sequence")
 	
 	def __repr__(self):
-		return f"{self.sequence} is a DNA sequence of length {len(self.sequence)}bp"		
+		if len(self.sequence) > 1:
+			return f"This is a list of {DNA.dna_counter} DNA sequences"
+		else:
+			return f"This is a DNA sequence of length {len(self.sequence[0])}bp"
 
 	def complement(self):
 		"""complements a sequence of DNA"""
-		complement = [DNA._dna_pairings.get(key) for key in self.sequence]
-		return ''.join(complement)
+		comp_lst = []
+		for seq in self.sequence:
+			complement = [DNA._dna_pairings.get(key) for key in seq]
+			complement = ''.join(complement)
+			comp_lst.append(complement)
+		return comp_lst
 
 	def reverse_complement(self):
 		"""reverse complements a sequence of DNA"""
-		rc = list(reversed([DNA._dna_pairings.get(key) for key in self.sequence]))
-		return ''.join(rc)
+		rc_lst = []
+		for seq in self.sequence:
+			rc = list(reversed([DNA._dna_pairings.get(key) for key in seq]))
+			rc = ''.join(rc)
+			rc_lst.append(rc)
+		return rc_lst
 
 	def transcribe(self):
 		"""transcribe a sequence of DNA"""
-		ts = [DNA._dna_to_rna.get(key) for key in self.sequence]
-		return ''.join(ts)
+		ts_lst = []
+		for seq in self.sequence:
+			transcribe = [DNA._dna_to_rna.get(key) for key in seq]
+			transcribe = ''.join(transcribe)
+			ts_lst.append(transcribe)
+		return ts_lst
 
 
 class RNA(NucleicAcid):
@@ -75,57 +99,87 @@ class RNA(NucleicAcid):
 	_rna_pairings = {'A': 'U', 'C': 'G', 'U': 'A', 'G': 'C', 'N': 'N'}
 	_rna_to_dna = {'A': 'A', 'C': 'C', 'U': 'T', 'G': 'G', 'N': 'N'}
 
+	rna_counter = 0
+
 	def __init__(self, sequence):
 		super().__init__(sequence)
-		if not RNA._rna.fullmatch(self.sequence):
-			raise ValueError("Please use a valid RNA sequence")
+		for seq in self.sequence:
+			RNA.rna_counter += 1
+			if not RNA._rna.fullmatch(seq):
+				if len(self.sequence) > 1:
+					raise ValueError(f"Sequence {RNA.rna_counter} is not a valid RNA sequence")
+				else:
+					raise ValueError("Please use a valid RNA sequence")
 	
 	def __repr__(self):
-		return f"{self.sequence} is a RNA sequence of length {len(self.sequence)}bp"		
+		if len(self.sequence) > 1:
+			return f"This is a list of {RNA.rna_counter} RNA sequences"
+		else:
+			return f"This is a RNA sequence of length {len(self.sequence[0])}bp"
 
 	def complement(self):
 		"""complements a sequence of DNA"""
-		complement = [RNA._rna_pairings.get(key) for key in self.sequence]
-		return ''.join(complement)
+		comp_lst = []
+		for seq in self.sequence:
+			complement = [RNA._rna_pairings.get(key) for key in seq]
+			complement = ''.join(complement)
+			comp_lst.append(complement)
+		return comp_lst
 
 	def reverse_complement(self):
 		"""reverse complements a sequence of DNA"""
-		rc = list(reversed([RNA._rna_pairings.get(key) for key in self.sequence]))
-		return ''.join(rc)
+		rc_lst = []
+		for seq in self.sequence:
+			rc = list(reversed([RNA._rna_pairings.get(key) for key in seq]))
+			rc = ''.join(rc)
+			rc_lst.append(rc)
+		return rc_lst
 
 	def reverse_transcribe(self):
 		"""reverse transcribe a sequence of RNA"""
-		rts = [RNA._rna_to_dna.get(key) for key in self.sequence]
-		return ''.join(rts)
+		rts_lst = []
+		for seq in self.sequence:
+			rev_transcribe = [RNA._rna_to_dna.get(key) for key in seq]
+			rev_transcribe = ''.join(rev_transcribe)
+			rts_lst.append(rev_transcribe)
+		return rts_lst
 
 
 class Orf(DNA):
-	"""simplified version that does not deal with introns; effectively the CDS; keeps track of the number of potential ORFs found, which can be reset"""
+	"""simplified DNA version that does not deal with introns; effectively the CDS; keeps track of the number of potential ORFs found, which can be reset"""
 
-	orfs_found = 0
+	orf_counter = 0
 
 	_start = 'ATG'
 	_stop = ['TAA', 'TAG', 'TGA']
 
-	@classmethod
-	def display_potential_orfs(cls):
-		return f"There are {cls.orfs_found} potential ORFs"
-
 	def __init__(self, sequence, reset = False):
 		super().__init__(sequence)
 		self.reset = reset
-		if not self.sequence.startswith(Orf._start) or not self.sequence[-3:] in Orf._stop or not len(self.sequence) % 3 == 0:
-			raise ValueError("Please use a valid ORF sequence")
 		if self.reset == True:
 			self.resetter()
-		else:
-			Orf.orfs_found += 1
-
+		for seq in self.sequence:
+			Orf.orf_counter += 1
+			# an ORF must have a start and stop codon as well as at least one codon in between
+			if not seq.startswith(Orf._start) or not seq[-3:] in Orf._stop or not len(seq) % 3 == 0 or not len(seq) > 6:
+				if len(self.sequence) > 1:
+					raise ValueError(f"Sequence {Orf.orf_counter} is not a valid ORF")
+				else:
+					raise ValueError("Please use a valid ORF sequence")	
+	
 	def __repr__(self):
-		return f"{self.sequence} is an ORF of length {len(self.sequence)} bases"
+		if len(self.sequence) > 1:
+			return f"This is a list of {Orf.orf_counter} ORFs"
+		else:
+			return f"This is an ORF of length {len(self.sequence[0])} bases"
 
 	def resetter(self):
-		orfs_found = 0
+		orf_counter = 0
+
+	def orf_lens(self):
+		orf_lengths = [len(orf) for orf in self.sequence]
+		print(f"There are {Orf.orf_counter} ORFs that are {orf_lengths} bases long")
+		return orf_lengths
 
 
 class Fasta(DNA):
@@ -146,8 +200,7 @@ class Fasta(DNA):
 					fasta_dict[key] = ''
 				else:
 					fasta_dict[key] = fasta_dict[key] + line.rstrip()
-
-		cls(fasta_seqs, fasta_headers)
+		return cls(fasta_dict)
 
 
 		# keys_values = list(zip(fasta_keys, fasta_values))
@@ -163,6 +216,5 @@ class Fasta(DNA):
 # Adding this in the future
 #class Fastq(DNA):
 
-orf = Orf('ATGUUUTAA')
-print(orf)
-
+seq= Orf(['ATGAAATAA', 'ATGAAATTTTAA', 'ATGAAGGGATTTTAA'])
+seq.orf_lens()
