@@ -6,7 +6,7 @@
 # Date: 2022-09-20
 
 import re
-
+import pandas as pd
 
 class NucleicAcid:
 	"""define a nucliec acid, including unnatural sequences that contain Ts and Us; can be passed in as a single string or a list of strings; the output will be a list"""
@@ -183,25 +183,23 @@ class Orf(DNA):
 
 
 class Fasta(DNA):
-
-	sequences_found = 0
-	
-	@classmethod
-	def display_sequences(cls):
-		return f"There are {cls.sequences_found} sequences in this FASTA file"
+	"""Takes a fasta file as input (can also take fasta headers and sequences as direct input, but this is not the preferred method), splits it into a list of headers and the corresponding sequences for subsequent analyses"""
 
 	@classmethod
 	def preprocess_fasta(cls, fasta):
 		fasta_dict = {}
 		with open(fasta, 'r') as fa:
+			line_cnt = 0
 			for line in fa:
+				line_cnt += 1
+				if line_cnt == 1 and not line.startswith('>'):
+					raise TypeError("Please use a valid FASTA file")
 				if line.startswith('>'):
 					key = line.rstrip()
 					fasta_dict[key] = ''
 				else:
 					fasta_dict[key] = fasta_dict[key] + line.rstrip()
-		return cls(fasta_dict)
-
+		return cls(list(fasta_dict.values()), list(fasta_dict.keys()))
 
 		# keys_values = list(zip(fasta_keys, fasta_values))
 		# fasta_dict.update(keys_values)
@@ -210,11 +208,29 @@ class Fasta(DNA):
 	def __init__(self, sequence, seq_id):
 		super().__init__(sequence)
 		self.seq_id = seq_id
-		Fasta.sequences_found += 1
+		
+	def __repr__(self):
+		return f"This FASTA file contains {len(self.sequence)} sequences"
 
+	def seq_df(self):
+		"""creates a 2 column dataframe that represents the fasta file"""
+		seq_lengths = [len(seq) for seq in self.sequence]
+		header_names = self.seq_id
+		combine_lists = list(zip(header_names, seq_lengths))
+		fasta_df = pd.DataFrame(combine_lists, columns = ['Identifiers', 'Sequence_lengths'])
+		return fasta_df
+
+
+def seq_info(fasta_df, fun):
+	"""Find the lengths and identifiers of sequences of interest"""
+	find_info = fasta_df[fasta_df['Sequence_lengths'] == fun(fasta_df['Sequence_lengths'])].copy()
+	find_info['Type'] = fun.__name__
+	return find_info
 
 # Adding this in the future
 #class Fastq(DNA):
 
-seq= Orf(['ATGAAATAA', 'ATGAAATTTTAA', 'ATGAAGGGATTTTAA'])
-seq.orf_lens()
+seqs= Fasta.preprocess_fasta("/Users/robertlinder/Dropbox/Genomic_analysis_tools/dna2.fasta")
+seqs_df = seqs.seq_df()
+seq_max = seq_info(seqs_df, max)
+print(seq_max)
