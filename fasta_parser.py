@@ -1,97 +1,75 @@
 #!/usr/bin/env python 
-# 4-space indented, v1.0
+# 4-space indented, v1.1
 # File name: fasta_parser.py
 # Description: This script can be used to calculate various metrics from an input fasta file.
 # Author: Robert Linder
-# Date: 2022-07-31
+# Date: 2022-09-23
 
-from Bio import SeqIO as Seq
+import re
 import pandas as pd
+from seq_classes import Fasta
+import argparse
 
 
-def create_fasta_df(fasta):
-	"""Create a dataframe of the names of each fasta record and the corresponding lengths of each sequence"""
-	header_names = list({name for name in fasta.keys()})
-	record_seqs = list({len(record) for record in fasta.values()})
-	combine_lists = list(zip(header_names, record_seqs))
-	fasta_df = pd.DataFrame(combine_lists, columns = ['Identifiers', 'Sequence_lengths'])
-	return fasta_df
+def parse_args():
 
-def sequence_info(fasta_df):
-	"""Find the values and identifiers of the longest and shortest sequences"""
-	max_info = fasta_df[fasta_df['Sequence_lengths'] == fasta_df['Sequence_lengths'].max()]
-	max_info['Type'] = 'Max'
-	min_info= fasta_df[fasta_df['Sequence_lengths'] == fasta_df['Sequence_lengths'].min()]
-	min_info['Type'] = "Min"
-	all_info = pd.concat([max_info, min_info])
-	return(all_info)
+	parser = argparse.ArgumentParser(description="List a variety of metrics from a FASTA file")
+	parser.add_argument("FASTA_file", type=str, help="FASTA file to retrieve information from")
+	parser.add_argument("-rframe", type=int, default=1, help="Use this reading frame for reporting ORFs")
+	parser.add_argument("-sublen", type=int, default=3, help="Input this substring length to find the most frequently occurring substring of this length")
+	parser.add_argument("--seqid", type=str, default=False, help="Retrieve information about this particular sequence")
+	args = parser.parse_args()
+	return args
 
-def find_orfs(fasta, frame_start):
-	"""Find all ORFS in all sequences in a fasta file"""
-	orf_list = []
-	for name, value in fasta.items():
-		frame = value.seq[frame_start-1:].upper()
-		for i in range(0, len(frame), 3):
-			codon = frame[i:(i+3)]
-			if codon == start:
-				starting = i
-				for j in range(starting, len(frame), 3):
-					codon2 = frame[j:(j+3)]
-					if codon2 in stop:
-						ending = j
-						sequence = frame[starting:(ending+3)]
-						orf_list.append([name, sequence, starting+frame_start])
-						break
-	#print(max([len(orf[1]) for orf in orf_list]))
-	return(orf_list)
+def unpack_dictionaries(fn):
+	def wrapper(*args):
+		counter = 0
+		output = pd.DataFrame()
+		for dictionary in args:
+			counter += 1
+			df_dictionary = fn(**dictionary)
+			output = pd.concat([output, df_dictionary], ignore_index=True)
+			if counter == len(args):
+				return output
+	return wrapper
 
-def orf_info(orf_list, fasta):
-	orf_names = [orf[0] for orf in orf_list]
-	seqs = [orf[1] for orf in orf_list]
-	orf_starts = [orf[2] for orf in orf_list]
-	orf_lens = [len(orf[1]) for orf in orf_list]
-	combined_orf_info = list(zip(orf_names, seqs, orf_starts, orf_lens))
-	orf_df = pd.DataFrame(combined_orf_info, columns = ['Identifier', 'Sequence', 'Start_idx', 'Orf_length'])
-	return(orf_df)
+@unpack_dictionaries
+def create_orf_df(**kwargs):
+	"""create a dataframe from a list of dictionaries (that must be unpacked using *) containing any number of key: value pairs, with each key representing a different parameter"""
+	orf_df = pd.DataFrame([kwargs])
+	orf_df['input'] = 'orf'
+	return orf_df
 
+def seq_info(seq_df, fun):
+	"""Find the lengths and identifiers of sequences of interest from a dataframe of sequences"""
+	find_info = seq_df[seq_df['Length(bp)'] == fun(seq_df['Length(bp)'])].copy()
+	find_info['Type'] = fun.__name__
+	print(f"This is the {fun.__name__} value from the {seq_df['input'].iloc[0]} input:")
+	print(find_info)
 
-def find_max(orf_df, seq_name):
-	max_orf = orf_df.loc[orf_df['Orf_length'] == max(orf_df['Orf_length'])]
-	#print(max_orf)
-	an_orf = orf_df.loc[orf_df['Identifier'] == seq_name]
-	#print(an_orf)
-	max_an_orf = an_orf.loc[an_orf['Orf_length'] == max(an_orf['Orf_length'])]
-	#print(max_an_orf)
-	return(max_an_orf)
+def seq_retrieval(seq_df, seq_id):
+	"""Retrieve information about a seqeunce of interest by its' identifier from a dataframe of sequences"""
+	find_info = seq_df[seq_df['Identifier'] == seq_id]
+	print(f"This has information about the {seq_id} sequence from the {seq_df['input'].iloc[0]} input:")
+	print(find_info)
 
-def find_repeats(fasta, n):
-	repeat_list = []
-	for value in fasta.values():
-		sequence = value.seq[:].upper()
-		for i in range(0, len(sequence)):
-			if len(sequence[i:(i+n)]) == n:
-				repeat_list.append(sequence[i:(i+n)])
-	unique_repeats = set(repeat_list)
-	repeat_dict = {x: repeat_list.count(x) for x in unique_repeats}
-	return(repeat_dict)
+def repeat_profiler(substring_dict, fun):
+	"""Retrieve information about a substring of interest by a user-defined function"""
+	print(f"This is the {fun.__name__} repeat value:")
+	print([(k, v) for k,v in substring_dict.items() if v == fun(substring_dict.values())])
 
 
-def main(frame_start, seq_name, repeat_len, fasta):
-	fasta_df = create_fasta_df(fasta)
-	seq_info = sequence_info(fasta_df)
-	all_orfs = find_orfs(fasta_seq, frame_start)
-	orf_df = orf_info(all_orfs, fasta)
-	max_info = find_max(orf_df, seq_name)
-	finding_repeats = find_repeats(fasta, repeat_len)
-	mx = max(finding_repeats.values())
-	print([k for k,v in finding_repeats.items() if v == mx])
-
+def main():
+	inputs = parse_args()
+	fasta_file = Fasta.preprocess_fasta(inputs)
+	fasta_df = fasta_file.create_fasta_df()
+	all_orfs = fasta_file.find_orfs(read_frame = 3)
+	all_repeats = fasta_file.find_substrings(substring_len = 5)
+	orf_df = create_orf_df(*all_orfs)
+	max_info = seq_info(orf_df, max)
+	if args.seqid:
+		sequence_info = seq_retrieval(fasta_df, seq_id = ">gi|142022655|gb|EQ086233.1|91 marine metagenome JCVI_SCAF_1096627390048 genomic scaffold, whole genome shotgun sequence")
+	max_repeat_count = repeat_profiler(all_repeats, max)
 
 if __name__ == "__main__":
-	fasta_seq = Seq.index("dna2.fasta", "fasta")
-	start = 'ATG'
-	stop = ['TAA', 'TAG', 'TGA']
-	frame_start = 3
-	seq_name = "gi|142022655|gb|EQ086233.1|16"
-	repeat_len = 7
-	main(frame_start, seq_name, repeat_len, fasta_seq)
+	main()
