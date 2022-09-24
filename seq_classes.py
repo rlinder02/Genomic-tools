@@ -1,5 +1,5 @@
 #!/usr/bin/env python 
-# 4-space indented, v1.0
+# 4-space indented, v1.1
 # File name: seq_classes.py
 # Description: This contains a list of types of sequences commonly encountered during genomics analyses and creates  a distinct class for each. Nucleic acids is the parent class that all other sequence classes inherit from.
 # Author: Robert Linder
@@ -176,13 +176,13 @@ class Orf(DNA):
 	def resetter(self):
 		orf_counter = 0
 
-	def orf_lens(self):
+	def find_orf_lens(self):
 		orf_lengths = [len(orf) for orf in self.sequence]
 		print(f"There are {Orf.orf_counter} ORFs that are {orf_lengths} bases long")
 		return orf_lengths
 
 
-class Fasta(DNA):
+class Fasta(Orf):
 	"""Takes a fasta file as input (can also take fasta headers and sequences as direct input, but this is not the preferred method), splits it into a list of headers and the corresponding sequences for subsequent analyses"""
 
 	@classmethod
@@ -201,36 +201,59 @@ class Fasta(DNA):
 					fasta_dict[key] = fasta_dict[key] + line.rstrip()
 		return cls(list(fasta_dict.values()), list(fasta_dict.keys()))
 
-		# keys_values = list(zip(fasta_keys, fasta_values))
-		# fasta_dict.update(keys_values)
-		# return cls(fasta_dict.keys(), fasta_dict.values())
-
 	def __init__(self, sequence, seq_id):
-		super().__init__(sequence)
+		DNA.__init__(self, sequence)
 		self.seq_id = seq_id
+		self.seq_dict = {}
+		self.seq_list = list(zip(self.seq_id, self.sequence))
+		self.seq_dict.update(self.seq_list)
 		
 	def __repr__(self):
 		return f"This FASTA file contains {len(self.sequence)} sequences"
 
-	def seq_df(self):
-		"""creates a 2 column dataframe that represents the fasta file"""
-		seq_lengths = [len(seq) for seq in self.sequence]
-		header_names = self.seq_id
-		combine_lists = list(zip(header_names, seq_lengths))
-		fasta_df = pd.DataFrame(combine_lists, columns = ['Identifiers', 'Sequence_lengths'])
+	def create_fasta_df(self):
+		fasta_df = pd.DataFrame(self.seq_list, columns = ['Identifier', 'Sequence'])
+		fasta_df['Length(bp)'] = [len(seq) for seq in self.sequence]
+		fasta_df['input'] = 'fasta'
 		return fasta_df
 
+	def find_orfs(self, read_frame):
+		"""find all ORFS in all sequences for one of the six possible reading frames"""
+		orf_list = []
+		for name, value in self.seq_dict.items():
+			if read_frame < 4:
+				frame = value[read_frame-1:]
+				strand = "sense"
+			else:
+				value = value[::-1]
+				frame = value[read_frame-4:]
+				strand = "antisense"
+			for i in range(0, len(frame), 3):
+				codon = frame[i:(i+3)]
+				if codon == Orf._start:
+					starting = i
+					for j in range(starting, len(frame), 3):
+						codon2 = frame[j:(j+3)]
+						if codon2 in Orf._stop:
+							ending = j
+							sequence = frame[starting:(ending+3)]
+							orf_list.append({'Identifier': name, 'Sequence': sequence, 'Start_idx': starting+read_frame, 'Strand': strand, 'Length(bp)': len(sequence)})
+							break
+		return(orf_list)
 
-def seq_info(fasta_df, fun):
-	"""Find the lengths and identifiers of sequences of interest"""
-	find_info = fasta_df[fasta_df['Sequence_lengths'] == fun(fasta_df['Sequence_lengths'])].copy()
-	find_info['Type'] = fun.__name__
-	return find_info
-
-# Adding this in the future
-#class Fastq(DNA):
-
-seqs= Fasta.preprocess_fasta("/Users/robertlinder/Dropbox/Genomic_analysis_tools/dna2.fasta")
-seqs_df = seqs.seq_df()
-seq_max = seq_info(seqs_df, max)
-print(seq_max)
+	def find_substrings(self, substring_len):
+		"""find all substrings of a given length across all seqeunces (includes overlapping repeats)"""
+		substring_dict = {}
+		#repeat_set = set()
+		for seq in self.sequence:
+			for i in range(0, len(seq)):
+				key = seq[i:(i+substring_len)]
+				if len(key) == substring_len:
+					if key in substring_dict: 
+						substring_dict[key] += 1
+					else:
+						substring_dict[key] = 1
+		return substring_dict
+			
+## Adding this in the future:
+#class Fastq(DNA)
