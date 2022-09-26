@@ -1,27 +1,31 @@
 #!/usr/bin/env python 
-# 4-space indented, v1.1
+# 4-space indented, v1.0.0
 # File name: fasta_parser.py
 # Description: This script can be used to calculate various metrics from an input fasta file.
 # Author: Robert Linder
 # Date: 2022-09-23
 
-import re
-import pandas as pd
-from seq_classes import Fasta
 import argparse
+import pandas as pd
+import re
+from functools import wraps
+from seq_classes import Fasta
+
 
 
 def parse_args():
-
+	"""this enables users to provide input as command line arguments to minimize the need for directly modifying the script; please enter '-h' to see the full list of options"""
 	parser = argparse.ArgumentParser(description="List a variety of metrics from a FASTA file")
 	parser.add_argument("FASTA_file", type=str, help="FASTA file to retrieve information from")
-	parser.add_argument("-rframe", type=int, default=1, help="Use this reading frame for reporting ORFs")
-	parser.add_argument("-sublen", type=int, default=3, help="Input this substring length to find the most frequently occurring substring of this length")
-	parser.add_argument("--seqid", type=str, default=False, help="Retrieve information about this particular sequence")
+	parser.add_argument('-r', '--reading-frame', action='store', type=int, default=1, choices=range(1,6), help="Use this reading frame for reporting ORFs")
+	parser.add_argument('-s', '--substring-length', type=int, default=3, help="Input this substring length to find the most frequently occurring substring of this length")
+	parser.add_argument("--seq-id", type=str, help="Retrieve information about this particular sequence; ensure the sequence name is enclosed in quotes")
+	parser.add_argument('-m', "--metric", type=str, choices=['max', 'min', 'median', 'mean'], help="Retrieve a metric of interest about this particular sequence")
 	args = parser.parse_args()
 	return args
 
 def unpack_dictionaries(fn):
+	@wraps(fn)
 	def wrapper(*args):
 		counter = 0
 		output = pd.DataFrame()
@@ -61,15 +65,20 @@ def repeat_profiler(substring_dict, fun):
 
 def main():
 	inputs = parse_args()
-	fasta_file = Fasta.preprocess_fasta(inputs)
+	fasta_file = Fasta.preprocess_fasta(inputs.FASTA_file)
 	fasta_df = fasta_file.create_fasta_df()
-	all_orfs = fasta_file.find_orfs(read_frame = 3)
-	all_repeats = fasta_file.find_substrings(substring_len = 5)
+	## If you are interested in finding ORFs in a reading frame other than the first, please specify using the -r flag
+	all_orfs = fasta_file.find_orfs(inputs.reading_frame)
+	## If you are interested in finding substrings of a length other than 3, please specify using the -s flag
+	all_repeats = fasta_file.find_substrings(inputs.substring_length)
 	orf_df = create_orf_df(*all_orfs)
-	max_info = seq_info(orf_df, max)
-	if args.seqid:
-		sequence_info = seq_retrieval(fasta_df, seq_id = ">gi|142022655|gb|EQ086233.1|91 marine metagenome JCVI_SCAF_1096627390048 genomic scaffold, whole genome shotgun sequence")
-	max_repeat_count = repeat_profiler(all_repeats, max)
+	if inputs.metric and not orf_df.empty:
+		orf_info = seq_info(orf_df, eval(inputs.metric))
+	if inputs.seq_id:
+		sequence_info = seq_retrieval(fasta_df, seq_id = inputs.seq_id)
+	if inputs.metric and any(all_repeats):
+		repeat_info = repeat_profiler(all_repeats, eval(inputs.metric))
+
 
 if __name__ == "__main__":
 	main()

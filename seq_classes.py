@@ -1,5 +1,5 @@
 #!/usr/bin/env python 
-# 4-space indented, v1.1
+# 4-space indented, v1.0.0
 # File name: seq_classes.py
 # Description: This contains a list of types of sequences commonly encountered during genomics analyses and creates  a distinct class for each. Nucleic acids is the parent class that all other sequence classes inherit from.
 # Author: Robert Linder
@@ -174,9 +174,11 @@ class Orf(DNA):
 			return f"This is an ORF of length {len(self.sequence[0])} bases"
 
 	def resetter(self):
+		"""can be used to reset the orf counter as needed"""
 		orf_counter = 0
 
 	def find_orf_lens(self):
+		"""finds the lengths of detected ORFs"""
 		orf_lengths = [len(orf) for orf in self.sequence]
 		print(f"There are {Orf.orf_counter} ORFs that are {orf_lengths} bases long")
 		return orf_lengths
@@ -187,6 +189,7 @@ class Fasta(Orf):
 
 	@classmethod
 	def preprocess_fasta(cls, fasta):
+		"""takes a fasta file and coverts it into a list of dictionaries in which the keys are the sequence identifiers and the values are the corresponding DNA sequence"""
 		fasta_dict = {}
 		with open(fasta, 'r') as fa:
 			line_cnt = 0
@@ -212,13 +215,14 @@ class Fasta(Orf):
 		return f"This FASTA file contains {len(self.sequence)} sequences"
 
 	def create_fasta_df(self):
+		"""this creates a pandas dataframe of the different sequences present in the fasta file"""
 		fasta_df = pd.DataFrame(self.seq_list, columns = ['Identifier', 'Sequence'])
 		fasta_df['Length(bp)'] = [len(seq) for seq in self.sequence]
 		fasta_df['input'] = 'fasta'
 		return fasta_df
 
 	def find_orfs(self, read_frame):
-		"""find all ORFS in all sequences for one of the six possible reading frames"""
+		"""find all ORFS in all sequences for one of the six possible reading frames as defined by the user"""
 		orf_list = []
 		for name, value in self.seq_dict.items():
 			if read_frame < 4:
