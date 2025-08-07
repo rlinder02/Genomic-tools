@@ -10,6 +10,7 @@ import pandas as pd
 import re
 from functools import wraps
 from seq_classes import Fasta
+import numpy as np
 
 
 
@@ -46,9 +47,15 @@ def create_orf_df(**kwargs):
 
 def seq_info(seq_df, fun):
 	"""Find the lengths and identifiers of sequences of interest from a dataframe of sequences"""
-	find_info = seq_df[seq_df['Length(bp)'] == fun(seq_df['Length(bp)'])].copy()
-	find_info['Type'] = fun.__name__
-	print(f"This is the {fun.__name__} value from the {seq_df['input'].iloc[0]} input:")
+	if fun.__name__ in ['amax', 'amin']:
+		find_info = seq_df[seq_df['Length(bp)'] == fun(seq_df['Length(bp)'])].copy()
+		find_info['Type'] = fun.__name__[1:]
+		print(f"This is the {fun.__name__[1:]} value from the {seq_df['input'].iloc[0]} input:")
+	else:
+		stat_of_interest = f"{fun(seq_df['Length(bp)'])} bp"
+		find_info = pd.DataFrame({"Length": [stat_of_interest]})
+		find_info['Type'] = fun.__name__
+		print(f"This is the {fun.__name__} orf length from the {seq_df['input'].iloc[0]} input:")
 	print(find_info)
 
 def seq_retrieval(seq_df, seq_id):
@@ -57,28 +64,33 @@ def seq_retrieval(seq_df, seq_id):
 	print(f"This has information about the {seq_id} sequence from the {seq_df['input'].iloc[0]} input:")
 	print(find_info)
 
-def repeat_profiler(substring_dict, fun):
+def repeat_profiler(substring_dict, fun, substring_length):
 	"""Retrieve information about a substring of interest by a user-defined function"""
-	print(f"This is the {fun.__name__} repeat value:")
-	print([(k, v) for k,v in substring_dict.items() if v == fun(substring_dict.values())])
-
+	if fun.__name__ in ['amax', 'amin']:
+		print(f"This is the {fun.__name__[1:]} occurring substring and number of times it occurs:")
+		print({(k, v) for k,v in substring_dict.items() if v == fun(list(substring_dict.values()))})
+	else:
+		print(f"This is the {fun.__name__} number of times substrings of length {substring_length} occur:")
+		print(fun(list(substring_dict.values())))
 
 def main():
 	inputs = parse_args()
 	fasta_file = Fasta.preprocess_fasta(inputs.FASTA_file)
+	fasta_name = inputs.FASTA_file.split('/')[-1].split(".")[0]
 	fasta_df = fasta_file.create_fasta_df()
 	## If you are interested in finding ORFs in a reading frame other than the first, please specify using the -r flag
 	all_orfs = fasta_file.find_orfs(inputs.reading_frame)
 	## If you are interested in finding substrings of a length other than 3, please specify using the -s flag
-	all_repeats = fasta_file.find_substrings(inputs.substring_length)
+	all_substrings = fasta_file.find_substrings(inputs.substring_length)
 	orf_df = create_orf_df(*all_orfs)
+	## Write out the dataframe of orfs for each sequence to a tab-delimited text file
+	orf_df.to_csv(f"{fasta_name}.txt", sep = "\t", index = False)
 	if inputs.metric and not orf_df.empty:
-		orf_info = seq_info(orf_df, eval(inputs.metric))
+		orf_info = seq_info(orf_df, getattr(np, inputs.metric))
 	if inputs.seq_id:
 		sequence_info = seq_retrieval(fasta_df, seq_id = inputs.seq_id)
-	if inputs.metric and any(all_repeats):
-		repeat_info = repeat_profiler(all_repeats, eval(inputs.metric))
-
+	if inputs.metric and any(all_substrings):
+		repeat_info = repeat_profiler(all_substrings, getattr(np, inputs.metric), inputs.substring_length)
 
 if __name__ == "__main__":
 	main()
