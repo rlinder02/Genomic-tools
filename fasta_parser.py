@@ -20,7 +20,7 @@ def parse_args():
 	parser.add_argument("FASTA_file", type=str, help="FASTA file to retrieve information from")
 	parser.add_argument('-r', '--reading-frame', action='store', type=int, default=1, choices=range(1,6), help="Use this reading frame for reporting ORFs")
 	parser.add_argument('-s', '--substring-length', type=int, default=3, help="Input this substring length to find the most frequently occurring substring of this length")
-	parser.add_argument("--seq-id", type=str, help="Retrieve information about this particular sequence; ensure the sequence name is enclosed in quotes")
+	parser.add_argument("--seq-id", type=str, help="Retrieve information about this particular sequence; ensure the sequence name is enclosed in quotes, and that you have input the entire line containing the sequence name, including the carrot at the beginning of the line")
 	parser.add_argument('-m', "--metric", type=str, choices=['max', 'min', 'median', 'mean'], help="Retrieve a metric of interest about this particular sequence")
 	args = parser.parse_args()
 	return args
