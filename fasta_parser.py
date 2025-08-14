@@ -18,7 +18,7 @@ def parse_args():
 	"""this enables users to provide input as command line arguments to minimize the need for directly modifying the script; please enter '-h' to see the full list of options"""
 	parser = argparse.ArgumentParser(description="List a variety of metrics from a FASTA file")
 	parser.add_argument("FASTA_file", type=str, help="FASTA file to retrieve information from")
-	parser.add_argument('-r', '--reading-frame', action='store', type=int, default=1, choices=range(1,6), help="Use this reading frame for reporting ORFs")
+	parser.add_argument('-r', '--reading-frame', action='store', type=int, default=1, choices=range(1,7), help="Use this reading frame for reporting ORFs")
 	parser.add_argument('-s', '--substring-length', type=int, default=3, help="Input this substring length to find the most frequently occurring substring of this length")
 	parser.add_argument("--seq-id", type=str, help="Retrieve information about this particular sequence; ensure the sequence name is enclosed in quotes, and that you have input the entire line containing the sequence name, including the carrot at the beginning of the line")
 	parser.add_argument('-m', "--metric", type=str, choices=['max', 'min', 'median', 'mean'], help="Retrieve a metric of interest about this particular sequence")
